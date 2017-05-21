@@ -6,27 +6,116 @@
 #include "opencv2\core\mat.hpp"
 #include <iostream>
 #include <cmath>
+#include <string>
 
 using namespace std;
 using namespace cv;
 using namespace xfeatures2d;
 
+string type2str(int type) { //для отладки
+	string r;
+
+	uchar depth = type & CV_MAT_DEPTH_MASK;
+	uchar chans = 1 + (type >> CV_CN_SHIFT);
+
+	switch (depth) {
+	case CV_8U:  r = "8U"; break;
+	case CV_8S:  r = "8S"; break;
+	case CV_16U: r = "16U"; break;
+	case CV_16S: r = "16S"; break;
+	case CV_32S: r = "32S"; break;
+	case CV_32F: r = "32F"; break;
+	case CV_64F: r = "64F"; break;
+	default:     r = "User"; break;
+	}
+
+	r += "C";
+	r += (chans + '0');
+
+	return r;
+}
+
+string int2str(const int &binNum) //мб передалать в char
+{
+	switch (binNum)
+	{
+	case 0: return "0";
+	case 1: return "1";
+	case 10: return "2";
+	case 11: return "3";
+	case 100: return "4";
+	case 101: return "5";
+	case 110: return "6";
+	case 111: return "7";
+	case 1000: return "8";
+	case 1001: return "9";
+	case 1010: return "A";
+	case 1011: return "B";
+	case 1100: return "C";
+	case 1101: return "D";
+	case 1110: return "E";
+	case 1111: return "F";
+	default:
+		break;
+	}
+}
+
+
+
 void hashImage(const Mat &img)
 {
 	Size size(8, 8);
+	std::string hashOfImg = "";
+	vector<short> binValue;
+	int k = 0;
+	int base = 10;
 	Mat dstImg;
 	cv::resize(img, dstImg, size);
 	cvtColor(dstImg, dstImg, CV_BGR2GRAY);
-	imwrite("greyimg.jpeg",dstImg);
-			//Vec3b intensity = dstImg.at<Vec3b>(i,j); //что здесь вообще происходит?
-	 Mat1b mask(dstImg.rows, dstImg.cols);
-	 Scalar averageColor = mean(dstImg, mask);
-	 
-		
+	//imwrite("greyimg.jpeg",dstImg);
+	Mat1b mask(dstImg.rows, dstImg.cols);
+	Scalar averageColor_sc = mean(dstImg, mask);
+	double averageColor = averageColor_sc.val[0];
+	//string typeImg = type2str(dstImg.type());
+	//cout << " typeImg = " << typeImg << endl;
+	cout << pow(10, 5) << endl;
+	int tmp = 0;
+	int l = 0;
+	for (int i = 0; i < 8; ++i)
+	{
+		for (int j = 0; j < 8; ++j)
+		{
+			Scalar intensivity = dstImg.at<uchar>(Point(i, j));
+			if (intensivity.val[0] > averageColor)
+			{
+				tmp += 1 * pow(10, k-l);
+				binValue.emplace_back(1);
+			}	
+			else
+			{
+				tmp *=10;
+				++l;
+				binValue.emplace_back(0);
+			}	
+			++k;
+			if (k == 4)
+			{
+				hashOfImg += int2str(tmp);
+				tmp = 0;
+				k = 0;
+				l = 0;
+			}
+		}
+	 }
+	cout << "Hash of Image = " << hashOfImg << endl;
+	cout << "Size of biValue " << binValue.size() << endl;
+	for (auto &to : binValue)
+		cout << to;
+	cout << endl;
 }
 
 int main(){
-	Mat img = imread("../data/apple-logo_318-40184.jpg",1);
+	Mat img = imread("../data/13-0.jpg",1);
 	Mat img2;
 	Ptr<Feature2D> f2d = SIFT::create();
 	vector<KeyPoint> keypoints;
