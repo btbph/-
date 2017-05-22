@@ -71,13 +71,9 @@ void hashImage(const Mat &img)
 	Mat dstImg;
 	cv::resize(img, dstImg, size);
 	cvtColor(dstImg, dstImg, CV_BGR2GRAY);
-	//imwrite("greyimg.jpeg",dstImg);
 	Mat1b mask(dstImg.rows, dstImg.cols);
 	Scalar averageColor_sc = mean(dstImg, mask);
 	double averageColor = averageColor_sc.val[0];
-	//string typeImg = type2str(dstImg.type());
-	//cout << " typeImg = " << typeImg << endl;
-	cout << pow(10, 5) << endl;
 	int tmp = 0;
 	int l = 0;
 	for (int i = 0; i < 8; ++i)
@@ -101,6 +97,25 @@ void hashImage(const Mat &img)
 	 }
 	cout << "Hash of Image = " << hashOfImg << endl;
 }
+
+int calcHammingDistance(string &num1, string &num2)
+{
+	int count = 0;
+	for (auto &to1 : num1)
+		for (auto &to2 : num2)
+			if (to1 != to2)
+				++count;
+	return count;
+}
+
+bool areSameImg(string &img1, string &img2)
+{
+	if (calcHammingDistance(img1, img2) >= 10)
+		return false;
+	else
+		return true;
+}
+
 
 int main(){
 	Mat img = imread("../data/13-0.jpg",1);
