@@ -66,7 +66,6 @@ void hashImage(const Mat &img)
 {
 	Size size(8, 8);
 	std::string hashOfImg = "";
-	vector<short> binValue;
 	int k = 0;
 	int base = 10;
 	Mat dstImg;
@@ -88,14 +87,7 @@ void hashImage(const Mat &img)
 			Scalar intensivity = dstImg.at<uchar>(Point(i, j));
 			if (intensivity.val[0] > averageColor)
 			{
-				tmp += 1 * pow(10, k-l);
-				binValue.emplace_back(1);
-			}	
-			else
-			{
-				tmp *=10;
-				++l;
-				binValue.emplace_back(0);
+				tmp += 1 * pow(10, 3-k);
 			}	
 			++k;
 			if (k == 4)
@@ -108,10 +100,6 @@ void hashImage(const Mat &img)
 		}
 	 }
 	cout << "Hash of Image = " << hashOfImg << endl;
-	cout << "Size of biValue " << binValue.size() << endl;
-	for (auto &to : binValue)
-		cout << to;
-	cout << endl;
 }
 
 int main(){
