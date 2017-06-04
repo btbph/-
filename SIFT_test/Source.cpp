@@ -7,6 +7,7 @@
 #include <iostream>
 #include <cmath>
 #include <string>
+#include <filesystem>
 
 using namespace std;
 using namespace cv;
@@ -67,7 +68,6 @@ void hashImage(const Mat &img)
 	Size size(8, 8);
 	std::string hashOfImg = "";
 	int k = 0;
-	int base = 10;
 	Mat dstImg;
 	cv::resize(img, dstImg, size);
 	cvtColor(dstImg, dstImg, CV_BGR2GRAY);
@@ -116,55 +116,100 @@ bool areSameImg(string &img1, string &img2)
 		return true;
 }
 
+void writeFileDirs(string &dir)
+{
+	namespace fs = std::experimental::filesystem;
+	for (auto &to : fs::directory_iterator(dir))
+		cout << to << endl;
+	
+}
+
+void makeVocabulary(vector<Mat>& descriptors)
+{
+	BOWKMeansTrainer bowTrainer(descriptors.size());
+	for (auto& to : descriptors)
+	{
+		//bowTrainer.add(to);
+	}
+}
+
+
+
+Mat setVocabulary(const string &dir)
+{
+	namespace fs = std::experimental::filesystem;
+	vector<KeyPoint> keypoints;
+	Mat descriptor;
+	Mat featuresUnclustered;
+	for (auto &to : fs::directory_iterator(dir))
+	{
+		const fs::directory_entry& entry = to;
+		string path = entry.path().string();
+		Mat img = imread(path,1);
+		Ptr<Feature2D> f2d = SIFT::create();
+		f2d->detect(img, keypoints);
+		f2d->compute(img, keypoints, descriptor);
+		featuresUnclustered.push_back(descriptor);
+	}
+	const int vocabluarySize = 3;
+	TermCriteria tc(CV_TERMCRIT_ITER, 100, 0.001);
+	const int flags = KMEANS_PP_CENTERS;
+	const int retries = 1;
+	BOWKMeansTrainer bowTrainer(vocabluarySize, tc, retries, flags);
+	Mat dictonary = bowTrainer.cluster(featuresUnclustered);
+	return dictonary;
+}
 
 int main(){
 	Mat img = imread("../data/13-0.jpg",1);
-	Mat img2;
-	Ptr<Feature2D> f2d = SIFT::create();
-	vector<KeyPoint> keypoints;
-	f2d->detect(img, keypoints);
-	if (!keypoints.empty())
-	{
-		drawKeypoints(img, keypoints, img2,cv::Scalar::all(-1),4);  
-		imshow(" ", img2);
-		const Scalar blue = Scalar(255, 0, 0);
-		const Scalar green = Scalar(0, 255, 0);
-		const Scalar red = Scalar(0, 0, 255);
-		Mat M, rotImg, cropped;
-		for (int i = 0; i < keypoints.size(); ++i)
-		{
-			if (keypoints[i].size > 60)
-			{
-				double angle = keypoints[i].angle;
-				const double coordX = keypoints[i].pt.x;
-				const double coordY = keypoints[i].pt.y;
-				const double sizeOfKeypoint = keypoints[i].size;
-				RotatedRect rRect = RotatedRect(Point2d(coordX ,
-					coordY), Size2d(sizeOfKeypoint, sizeOfKeypoint),angle);
-				Point2f vertices[4];
-				Size rectSize = rRect.size;
-				rRect.points(vertices);
-				for (int i = 0; i < 4; i++)
-					line(img2, vertices[i], vertices[(i + 1) % 4], blue);
-				if (angle < -45.0) // вынести в функцию
-				{
-					angle += 90.0;
-					swap(rectSize.height, rectSize.width);
-				}
-				M = getRotationMatrix2D(rRect.center, angle, 1.0);
-				warpAffine(img2, rotImg, M, img2.size(), INTER_CUBIC);
-				getRectSubPix(rotImg, rectSize, rRect.center, cropped);
-				hashImage(cropped);
-				imshow("cropped image", cropped);
-				break;
-			}
-		}
-		namedWindow("Step 2 draw Rectangle", WINDOW_AUTOSIZE);
-		imshow("Step 2 draw Rectangle", img2);
-		waitKey(0);
-	}
-	else
-		cout << "No keypoints" << endl;
+	string dir("../data");
+	//writeFileDirs(dir);
+	Mat voc = setVocabulary(dir);
+	//Mat img2;
+
+	////f2d->compute(img,keypoints,)
+	//if (!keypoints.empty())
+	//{
+	//	drawKeypoints(img, keypoints, img2,cv::Scalar::all(-1),4);  
+	//	cv::imshow(" ", img2);
+	//	const Scalar blue = Scalar(255, 0, 0);
+	//	const Scalar green = Scalar(0, 255, 0);
+	//	const Scalar red = Scalar(0, 0, 255);
+	//	Mat M, rotImg, cropped;
+	//	for (int i = 0; i < keypoints.size(); ++i)
+	//	{
+	//		if (keypoints[i].size > 60)
+	//		{
+	//			double angle = keypoints[i].angle;
+	//			const double coordX = keypoints[i].pt.x;
+	//			const double coordY = keypoints[i].pt.y;
+	//			const double sizeOfKeypoint = keypoints[i].size;
+	//			RotatedRect rRect = RotatedRect(Point2d(coordX ,
+	//				coordY), Size2d(sizeOfKeypoint, sizeOfKeypoint),angle);
+	//			Point2f vertices[4];
+	//			Size rectSize = rRect.size;
+	//			rRect.points(vertices);
+	//			for (int i = 0; i < 4; i++)
+	//				line(img2, vertices[i], vertices[(i + 1) % 4], blue);
+	//			if (angle < -45.0) // вынести в функцию
+	//			{
+	//				angle += 90.0;
+	//				swap(rectSize.height, rectSize.width);
+	//			}
+	//			M = getRotationMatrix2D(rRect.center, angle, 1.0);
+	//			warpAffine(img2, rotImg, M, img2.size(), INTER_CUBIC);
+	//			getRectSubPix(rotImg, rectSize, rRect.center, cropped);
+	//			hashImage(cropped);
+	//			cv::imshow("cropped image", cropped);
+	//			break;
+	//		}
+	//	}
+	//	namedWindow("Step 2 draw Rectangle", WINDOW_AUTOSIZE);
+	//	cv::imshow("Step 2 draw Rectangle", img2);
+	//	cv::waitKey(0);
+	//}
+	//else
+	//	cout << "No keypoints" << endl;
 
 
 	return 0;
